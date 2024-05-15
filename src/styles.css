@@ -102,12 +102,19 @@
 
 
 .chats_page {
-    display: flex;
+    display: inline-flex;
+}
+
+.chats_page_buttons{
+    flex: 2;
 }
 
 .chats_page .chats-list{
+    display: flex;
+
+    flex-direction: column;
     border: #0051ff solid 5px;
-    width: 20%;
+    padding: 5px;
 }
 
 .chat-history {

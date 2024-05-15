@@ -4,6 +4,9 @@ import {ChatHistory, ChatInfo} from "./Chat";
 import {Message} from "./Message";
 import {CommonProps} from "../CommonProps";
 import '../styles.css'
+import newChatForm from "./NewChatForm";
+import NewChatForm from "./NewChatForm";
+import JoinChatComponent from "./JoinChat";
 
 export interface ChatComponentsProps extends CommonProps {
     allChats: ChatInfo[]
@@ -14,6 +17,8 @@ export interface ChatComponentsProps extends CommonProps {
 
 export interface ChatComponentsState {
     selectedChat: ChatHistory;
+    showCreateChatWindow: boolean,
+    showJoinToChatWindow: boolean,
 }
 
 
@@ -21,20 +26,71 @@ export class ChatsComponent extends Component<ChatComponentsProps, ChatComponent
     constructor(props: ChatComponentsProps) {
         super(props);
         this.state = {
-            selectedChat: props.selectedChat
+            selectedChat: props.selectedChat,
+            showCreateChatWindow: false,
+            showJoinToChatWindow: false,
         };
+        this.onCreateChatButtonClick = this.onCreateChatButtonClick.bind(this);
+        this.onChatCreated = this.onChatCreated.bind(this);
+        this.onJoinChatButtonClick = this.onJoinChatButtonClick.bind(this);
     }
 
     render() {
         return (
             <div className='chats_page'>
-                <ChatsList
-                    chats={this.props.allChats}
-                />
+                {this.state.showCreateChatWindow ? <NewChatForm onCreateClick={this.onChatCreated}></NewChatForm> : <div></div>}
+                {this.state.showJoinToChatWindow ? <JoinChatComponent onChatJoined={this.onChatJoined}></JoinChatComponent> : <div></div>}
+                <div>
+                    <div style={{maxHeight: "50px", border: "#0051ff solid 5px"}}>
+                        <button onClick={this.onCreateChatButtonClick}>Создать чат</button>
+                        <button onClick={this.onJoinChatButtonClick}>Вступить в чат</button>
+                    </div>
+                    <ChatsList
+                        chats={this.props.allChats}
+                    />
+
+                </div>
                 {this.renderSelectedChat(this.state.selectedChat)}
             </div>
         );
     }
+
+    onCreateChatButtonClick(event: React.MouseEvent<HTMLButtonElement>){
+        this.setState(
+            {
+            ...this.state,
+            showCreateChatWindow: !this.state.showCreateChatWindow
+        });
+    }
+
+    onChatCreated(isCreated: boolean)
+    {
+        console.log(this);
+        console.log(isCreated);
+        this.setState(
+            {
+                ...this.state,
+                showCreateChatWindow: false
+            });
+    }
+
+    onJoinChatButtonClick(event: React.MouseEvent<HTMLButtonElement>){
+        console.log(this.state)
+        this.setState(
+            {
+                ...this.state,
+                showJoinToChatWindow: !this.state.showJoinToChatWindow
+            });
+    }
+
+    onChatJoined(event: React.MouseEvent<HTMLButtonElement>){
+        this.setState(
+            {
+                ...this.state,
+                showJoinToChatWindow: false
+            });
+    }
+
 
     renderSelectedChat(chat: ChatHistory) {
         if (this.state.selectedChat == null)
