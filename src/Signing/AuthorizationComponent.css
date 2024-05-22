@@ -1,0 +1,77 @@
+.authorization-component {
+    display: flex;
+    flex-direction: column;
+    background: lightgray;
+    padding: 10px;
+    align-items: center;
+}
+
+.authorization-component p {
+    margin-bottom: 10px;
+}
+
+.authorization-component img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.authorization-component button {
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+.registration-overlay, .sign-in-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.registration-overlay form, div .sign-in-overlay form {
+    background: #fff;
+    padding: 20px;
+}
+
+.registration-overlay h2, .sign-in-overlay h2 {
+    margin-bottom: 10px;
+}
+
+.registration-overlay label, .sign-in-overlay label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.registration-overlay input, .sign-in-overlay input {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+}
+
+.registration-overlay button, .sign-in-overlay button {
+    display: block;
+    padding: 10px;
+    margin: 10px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sign-in-overlay .errorText, .registration-overlay .errorText {
+    color: red;
+}
+
+.registration-overlay button:hover, .sign-in-overlay button:hover {
+    background: #0056b3;
+}

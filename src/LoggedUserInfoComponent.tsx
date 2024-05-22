@@ -10,8 +10,8 @@ export class LoggedUserComponent extends Component<LoggedUserComponentProps> {
     render() {
         return(
             <div className='App'>
-                <img className='icon' src={`data:image/png;base64,${this.props.user.imageBase64}`} alt={"Your avatar"}/>
-                <p className='iconCaption'>{this.props.user.userName}</p>
+                <img className='icon' src={this.props.user.imageBase64} alt={"Your avatar"}/>
+                <p className='iconCaption'>{this.props.user.username}</p>
                 <button>
                     <img width='20px' height='20px' className='icon' src={logoutIcon} alt='Logout'></img>
                 </button>
