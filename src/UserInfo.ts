@@ -1,5 +1,7 @@
 export interface UserInfo{
-    id : string;
-    userName : string;
+    userId : string;
+    username : string;
     imageBase64 : string;
 }
+
+export default UserInfo;

@@ -1,57 +1,142 @@
 import React, {Component} from "react";
-import {Chats, ChatsList} from "./ChatsList";
+import {ChatsList} from "./ChatsList";
 import {ChatHistory, ChatInfo} from "./Chat";
 import {Message} from "./Message";
 import {CommonProps} from "../CommonProps";
 import '../styles.css'
-import newChatForm from "./NewChatForm";
 import NewChatForm from "./NewChatForm";
 import JoinChatComponent from "./JoinChat";
-
+import {IChattingClient, ISessionStateProvider, IUserInfoProvider} from "../Signing/UserStateProvider";
 export interface ChatComponentsProps extends CommonProps {
-    allChats: ChatInfo[]
-    //Куда бы это унести подальше?
-    currentUserId: string;
-    selectedChat: ChatHistory;
+    chattingClient: IChattingClient,
+    sessionStateProvider: ISessionStateProvider,
+    userInfoProvider: IUserInfoProvider
 }
 
 export interface ChatComponentsState {
-    selectedChat: ChatHistory;
+    selectedChat?: ChatHistory;
     showCreateChatWindow: boolean,
     showJoinToChatWindow: boolean,
+    allChats?: ChatInfo[]
+    inputText: string;
 }
 
 
 export class ChatsComponent extends Component<ChatComponentsProps, ChatComponentsState> {
+    private interval: NodeJS.Timer | undefined;
     constructor(props: ChatComponentsProps) {
         super(props);
         this.state = {
-            selectedChat: props.selectedChat,
+            inputText: "",
+            allChats: undefined,
+            selectedChat: undefined,
             showCreateChatWindow: false,
-            showJoinToChatWindow: false,
+            showJoinToChatWindow: false
         };
         this.onCreateChatButtonClick = this.onCreateChatButtonClick.bind(this);
         this.onChatCreated = this.onChatCreated.bind(this);
         this.onJoinChatButtonClick = this.onJoinChatButtonClick.bind(this);
     }
 
+    componentDidMount() {
+        const sessionState = this.props.sessionStateProvider.GetSessionState();
+        const isLogged = sessionState.sid && sessionState.userId;
+
+        console.log('Я маунчу')
+        this.interval = setInterval(() => this.updateChats(), 5000)
+        if (isLogged && !this.state.allChats){
+
+            this.props.chattingClient.GetAllChats()
+                .then(res => this.setState({
+                    ...this.state,
+                    allChats: res
+                }))
+        }
+    }
+
+    async updateChats(){
+        console.log('Я апдейчу')
+        const updatedChats = await this.props.chattingClient.GetAllChats();
+        const {allChats, selectedChat} = this.state;
+
+        const stringifyAndSort = (arr: ChatInfo[]) => arr.map(info => JSON.stringify(info)).sort();
+
+        const sortedArr1 = stringifyAndSort(allChats!);
+        const sortedArr2 = stringifyAndSort(updatedChats);
+
+        if (JSON.stringify(sortedArr1) != JSON.stringify(sortedArr2)){
+            console.log('Я проверяю кек')
+            if (selectedChat){
+                console.log('Я проверяю сообщение')
+                const updatedSelectedChat = updatedChats.find(x => x.chatId == selectedChat.chatId)!;
+                const lastKnownSelectedChat = selectedChat.messages.reduce((maxChat: Message | null, currentChat: Message) => {
+                    if (!maxChat || currentChat.sendDate > maxChat.sendDate) {
+                        return currentChat;
+                    }
+                    return maxChat;
+                }, null);
+
+                if (JSON.stringify(lastKnownSelectedChat) != JSON.stringify(updatedSelectedChat.lastSendMessage)){
+                    const messages = await this.props.chattingClient.GetMessages(selectedChat.chatId);
+                    const usersIds = messages.map(x => x.senderId);
+                    const users = await this.props.userInfoProvider.GetMany(usersIds);
+                    console.log('Я обновил и чаты и сообщения')
+                    this.setState({
+                        ...this.state,
+                        allChats: updatedChats,
+                        selectedChat: {
+                            messages: messages,
+                            chatId: selectedChat.chatId,
+                            users: users
+                        }}
+                    );
+                    return;
+                }
+            }
+                console.log('Я обновил по простому');
+                this.setState({
+                    ...this.state,
+                    allChats: updatedChats
+                })
+        }
+        else{
+            console.log('Кажись ничего не поменялось')
+        }
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
+    }
+
     render() {
         return (
             <div className='chats_page'>
-                {this.state.showCreateChatWindow ? <NewChatForm onCreateClick={this.onChatCreated}></NewChatForm> : <div></div>}
-                {this.state.showJoinToChatWindow ? <JoinChatComponent onChatJoined={this.onChatJoined}></JoinChatComponent> : <div></div>}
+                {this.state.showCreateChatWindow && <NewChatForm close={this.onChatCreated} tryCreateChat={(a, b) => this.props.chattingClient.CreateChat(a, b)}></NewChatForm>}
+                {this.state.showJoinToChatWindow && <JoinChatComponent close={this.onChatJoined} tryJoinChat={(c) => this.props.chattingClient.JoinChat(c)}></JoinChatComponent>}
                 <div>
                     <div style={{maxHeight: "50px", border: "#0051ff solid 5px"}}>
                         <button onClick={this.onCreateChatButtonClick}>Создать чат</button>
                         <button onClick={this.onJoinChatButtonClick}>Вступить в чат</button>
                     </div>
-                    <ChatsList
-                        chats={this.props.allChats}
-                    />
-
+                    <ChatsList chats={this.state.allChats ?? []} onChatSelected={(x) => this.updateSelectedChat(x)}/>
                 </div>
-                {this.renderSelectedChat(this.state.selectedChat)}
+                {this.renderSelectedChat(this.state.selectedChat ?? {users: [], chatId: '', messages:[]})}
             </div>
+        );
+    }
+
+    async updateSelectedChat(chatId: string) {
+        const messages = await this.props.chattingClient.GetMessages(chatId);
+        const usersIds = messages.map(x => x.senderId);
+        const users = await this.props.userInfoProvider.GetMany(usersIds);
+        return this.setState({
+                ...this.state,
+                selectedChat: {
+                    messages: messages,
+                    chatId: chatId,
+                    users: users
+                }
+            }
         );
     }
 
@@ -63,10 +148,8 @@ export class ChatsComponent extends Component<ChatComponentsProps, ChatComponent
         });
     }
 
-    onChatCreated(isCreated: boolean)
+    onChatCreated()
     {
-        console.log(this);
-        console.log(isCreated);
         this.setState(
             {
                 ...this.state,
@@ -106,17 +189,18 @@ export class ChatsComponent extends Component<ChatComponentsProps, ChatComponent
     }
 
     renderMessage(message: Message) {
+        const sessionState = this.props.sessionStateProvider.GetSessionState();
+        const sender = this.state.selectedChat?.users.find(x => x.userId == message.senderId);
         return (<div className="message">
             <img
-                src={`data:image/png;base64,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`}
+                //TODO Картинку сендера
+                src={sender?.imageBase64}
                 alt="Avatar" className="avatar"/>
             <div>
-                {/*TODO Сделать по другому*/}
-                <div className="user">{message.senderId}</div>
-                {/*TODO Сделать по другому*/}
-                <div className={message.senderId == '1' ? 'other_person_text' : 'your_text'}>
-                    <p>{message.text}</p>
-                    <p className="date">{message.sendDate.toDateString()}</p>
+                <div className="user">{sender?.username ?? 'А кто вообще послал сообщение?'}</div>
+                <div className={message.senderId == sessionState.userId ? 'other_person_text' : 'your_text'}>
+                    <p>{message.messageText}</p>
+                    <p className="date">{message.sendDate}</p>
                 </div>
             </div>
         </div>)
@@ -125,9 +209,18 @@ export class ChatsComponent extends Component<ChatComponentsProps, ChatComponent
     renderInputPanel() {
         return (
             <div className={'input-panel'}>
-                <textarea className={'text-input'}/>
-                <button className={'send-button'}>Send</button>
+                <textarea className={'text-input'} onChange={e => this.setState({...this.state, inputText: e.target.value})}>{this.state.inputText}</textarea>
+                <button className={'send-button'} onClick={() => this.sendMessage()}>Send</button>
             </div>
         )
+    }
+
+    async sendMessage(){
+        const {inputText, selectedChat} = this.state;
+        await this.props.chattingClient.SendMessage(
+            selectedChat!.chatId,
+            inputText
+        );
+
     }
 }

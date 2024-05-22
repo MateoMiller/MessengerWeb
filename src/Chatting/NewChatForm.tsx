@@ -1,5 +1,7 @@
 import React, {Component} from 'react';
 import './newChatForm.css'
+import '../Signing/AuthorizationComponent.css'
+import {ChatInfo} from "./Chat";
 
 export interface NewChatState {
     chatName: string,
@@ -7,7 +9,8 @@ export interface NewChatState {
 }
 
 export interface NewChatProps {
-    onCreateClick: Function
+    close: () => void
+    tryCreateChat: (name: string, imageBase64: string) => Promise<ChatInfo>
 }
 
 
@@ -27,7 +30,6 @@ class NewChatForm extends Component<NewChatProps, NewChatState> {
                 ...this.state,
                 chatName: value
             });
-        console.log(this.state)
     }
 
     handleImageChange = (event: any) => {
@@ -42,38 +44,44 @@ class NewChatForm extends Component<NewChatProps, NewChatState> {
         };
 
         reader.readAsDataURL(image);
-
-        console.log(this.state)
     }
 
-    handleSubmit = (event: any) => {
+    handleSubmit = async (event: any) => {
         event.preventDefault();
         const {chatName, imageBase64} = this.state;
 
-        // Добавить логику для создания нового чата, например, отправку данных на сервер
-
-        console.log(this.state)
-        this.props.onCreateClick(chatName == 'yes')
+        const isSuccess = await this.props.tryCreateChat(
+            chatName, imageBase64
+        );
+        if (isSuccess)
+            this.props.close()
+        else
+            this.setState({
+                ...this.state,
+                //Мб ошибку показывать
+            })
     }
 
     render() {
-        const {chatName, imageBase64} = this.state;
-
         return (
-            <form className={'new-chat-form'} onSubmit={this.handleSubmit}>
-                <label>
-                    Название чата:
-                    <input type="text" name="chatName" value={chatName} onChange={this.handleInputChange}/>
-                </label>
-                <br/>
-                <label>
-                    <span>Изображение чата:</span>
-                    <input type="file" name="chatImage" onChange={this.handleImageChange}/>
-                    <img src={this.state.imageBase64} alt="Chat Image"/>
-                </label>
-                <br/>
-                <button type="submit">Создать чат</button>
-            </form>
+            <>
+                <div className="overlay"></div>
+                    <form className={'new-chat-form'} onSubmit={this.handleSubmit}>
+                        <label>
+                            Название чата:
+                            <input type="text" name="chatName" value={this.state.chatName} onChange={this.handleInputChange}/>
+                        </label>
+                        <br/>
+                        <label>
+                            <span>Изображение чата:</span>
+                            <input type="file" name="chatImage" onChange={this.handleImageChange}/>
+                            <img src={this.state.imageBase64} alt="Chat Image"/>
+                        </label>
+                        <br/>
+                        <button type="submit">Создать чат</button>
+                        <button onClick={() => this.props.close()}>Close</button>
+                </form>
+            </>
         );
     }
 }

@@ -3,11 +3,14 @@ import {Message} from "./Message";
 
 export interface ChatInfo
 {
-    user: UserInfo;
-    lastSendMessage: Message;
+    name: string;
+    base64Image: string;
+    chatId: string;
+    lastSendMessage?: Message;
 }
 
-export interface ChatHistory
-{
+export type ChatHistory = {
     messages: Message[];
+    chatId: string;
+    users: UserInfo[]
 }
